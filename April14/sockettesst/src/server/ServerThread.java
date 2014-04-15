@@ -106,20 +106,10 @@ public class ServerThread extends Thread{
 	        	 default:
 	        		 break;
 	         }
-	         
-	         messageToClient.setProtocolId(1);
-	         
-	         if( messageToClient.getDataBytes() == null || messageToClient.getStepId() == 0){
-	        	 messageToClient.setProtocolId(9);
-	        	 messageToClient.setStepId(9);
-	        	 messageToClient.setData("wrong");
-	         }
-			 String str = MessageReader.messageToJson(messageToClient);
-	         //send message;
-	         out.println(str);
-	         
+//	         if( messageToClient.getDataBytes() == null || messageToClient.getStepId() == 0){
+//	        	 System.out.println("Got unvalid message");
+//	         }
          }
-        
 	}
 	
 	
@@ -163,8 +153,11 @@ public class ServerThread extends Thread{
 			R1 = CryptoUtils.generateNonce();
 			mapout.put("IP", clientIP.getBytes(Charset.forName("UTF-8")));
 			mapout.put("cookie", R1);
+	        messageToClient.setProtocolId(1);
 			messageToClient.setStepId(2);
 			messageToClient.setData(CryptoUtils.mapToByte(mapout));
+			String str = MessageReader.messageToJson(messageToClient);
+	        out.println(str);
 		}
 	}
 	
@@ -225,6 +218,9 @@ public class ServerThread extends Thread{
 					//set encrypted map into message
 					messageToClient.setData(CryptoUtils.getEncryptedMap(mapout, WKey));
 					messageToClient.setStepId(4);
+     		        messageToClient.setProtocolId(1);
+     		        String str = MessageReader.messageToJson(messageToClient);
+	    	        out.println(str);
 					
 				}
 			}
@@ -237,12 +233,11 @@ public class ServerThread extends Thread{
 
 		if(R3 != null && secretKeyKas !=null){
 			mapin = CryptoUtils.getDecryptedMap(data, secretKeyKas);
-			byte[] r3byte = mapin.get(R3);
+			byte[] r3byte = mapin.get("R3");
 			if((new String(R3)).equals(new String(r3byte))){
 				//update list
 				updateClientPortDict();
 				updateClientSecretKeyDict();
-				
 			}
 		}
 	}
@@ -289,6 +284,7 @@ public class ServerThread extends Thread{
 		}
 	    clientPortDict.put(getUsername(), getUserport());
 	    server.setClientPortDict(clientPortDict);
+	    System.out.println("Add user: " + getUsername());
 	}
 
 	private void updateClientSecretKeyDict() {

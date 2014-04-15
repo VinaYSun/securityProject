@@ -6,8 +6,12 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.security.Key;
 import java.util.HashMap;
+
+import utils.Message;
+import utils.MessageReader;
 
 public class Client {
 
@@ -16,7 +20,7 @@ public class Client {
 
 	private String username;
 	private String password;
-	private int portForPeers;
+	private String portForPeers;
 
 	private HashMap<String, String> clientPortDict = null;
 	private HashMap<String, Key> peerSecretKeyDict = null;
@@ -25,9 +29,8 @@ public class Client {
 	private Key PublicKey;
 	private byte[] gamodp;
 	private byte[] gsmodp;
-	private byte[] gasmodp;
-	private Key secretKey;
-	private byte[] secretKeyBytes;
+	private byte[] gasmodp = null;
+	private Key secretKeyKas = null;
 	private byte[] R1;
 	private byte[] R2;
 	private byte[] R3;
@@ -38,41 +41,58 @@ public class Client {
 	private byte[] peerName;
 	
 	public Client() {
-		try{
-			String hostAddress = "127.0.0.1";
-			sktToServer = new Socket(hostAddress, 8989);
-	
-			BufferedReader inputRead = new BufferedReader(new InputStreamReader(System.in));
-			PrintWriter out = new PrintWriter(sktToServer.getOutputStream(), true);
+
+			initConnection();
 	
 			clientPortDict = new HashMap<String, String>();
 			peerSecretKeyDict = new HashMap<String, Key>();
 			
-			if(sktToServer.isClosed()){
-				System.out.println("Socket is closed.");
-			}
-			
+			BufferedReader inputRead = new BufferedReader(new InputStreamReader(System.in));
 			initPeerListener(inputRead);
-			
-			System.out.println("Please input the username:");
-			username = inputRead.readLine();
-		
-			System.out.println("Please input the password:");
-			password = inputRead.readLine();
-			
+			getNameAndPwd(inputRead);
+
+			//respond to user input
 			initInputListener();
 			
-			//communicate with server
-			ServerListener serverIn = new ServerListener(this, sktToServer);
-			serverIn.start();
+			initServerListener();
 			
 			acceptPeerRequest();
+		
+	}
 	
-		}catch(IOException e){
+	private void initServerListener() {
+		//respond to server message
+		ServerListener serverListener = new ServerListener(this, sktToServer);
+		serverListener.start();
+	}
+
+	private void getNameAndPwd(BufferedReader input) {
+		try {
+			System.out.println("Please input the username:");
+			username = input.readLine();
+			System.out.println("Please input the password:");
+			password = input.readLine();
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
-	
+
+	private void initConnection() {
+		String hostAddress = "127.0.0.1";
+		try {
+			sktToServer = new Socket(hostAddress, 8989);
+			PrintWriter out = new PrintWriter(sktToServer.getOutputStream(), true);
+			Message msgInit = new Message(1,1,"login");
+			String str= MessageReader.messageToJson(msgInit);
+			out.println(str);
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+	}
+
 	/**
 	 * handle incoming invitations from peers
 	 */
@@ -96,12 +116,13 @@ public class Client {
 
 	private void initPeerListener(BufferedReader inputRead) {
 		try{
-			System.out.println("Please input the port # of client listener:");
+			System.out.println("Please input the port # of client listener: 9000 - 9095");
 			String str = inputRead.readLine();
 			int port = Integer.parseInt(str);
-			setPortForPeers(port);
+			setPortForPeers(str);
 			ServerSocket serverSocket = new ServerSocket(port);
 			setPeerListener(serverSocket);
+			
 		}catch(IOException e){
 			e.printStackTrace();
 		}
@@ -123,11 +144,11 @@ public class Client {
 		this.peerSecretKeyDict = peerSecretKeyDict;
 	}
 
-	public int getPortForPeers() {
+	public String getPortForPeers() {
 		return portForPeers;
 	}
 
-	public void setPortForPeers(int portForPeers) {
+	public void setPortForPeers(String portForPeers) {
 		this.portForPeers = portForPeers;
 	}
 
@@ -155,6 +176,30 @@ public class Client {
 		this.username = username;
 	}
 
+	public Key getSecretKeyKas() {
+		return secretKeyKas;
+	}
+
+	public void setSecretKeyKas(Key secretKeyKas) {
+		this.secretKeyKas = secretKeyKas;
+	}
+
+	public byte[] getGasmodp() {
+		return gasmodp;
+	}
+
+	public void setGasmodp(byte[] gasmodp) {
+		this.gasmodp = gasmodp;
+	}
+
+	public byte[] getTicketToPeer() {
+		return ticketToPeer;
+	}
+
+	public void setTicketToPeer(byte[] ticketToPeer) {
+		this.ticketToPeer = ticketToPeer;
+	}
+	
 	public static void main(String args[]) throws IOException {
 		new Client();
 	}
