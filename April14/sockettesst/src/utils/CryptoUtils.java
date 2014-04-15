@@ -2,9 +2,11 @@ package utils;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyFactory;
@@ -45,10 +47,15 @@ public class CryptoUtils {
 	 * @throws UnsupportedEncodingException
 	 * @throws NoSuchAlgorithmException 
 	 */
-	public static byte[] generateNonce() throws UnsupportedEncodingException, NoSuchAlgorithmException { 
-        SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
-		byte[] bytes = new byte[128/8];
-	    random.nextBytes(bytes);
+	public static byte[] generateNonce(){ 
+        SecureRandom random;
+        byte[] bytes = new byte[128/8];
+		try {
+			random = SecureRandom.getInstance("SHA1PRNG");
+		    random.nextBytes(bytes);
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
 	    return bytes;
 	}
 	
@@ -86,9 +93,8 @@ public class CryptoUtils {
 	/**
 	 * Generate aes secret key
 	 * @return AES key
-	 * @throws NoSuchAlgorithmException
 	 */
-	public static Key generateAESKey(byte[] bytes) throws NoSuchAlgorithmException {
+	public static Key generateAESKey(byte[] bytes)  {
 		SecretKey key = new SecretKeySpec(bytes, "AES");
 		return key;
 	}
@@ -184,11 +190,22 @@ public class CryptoUtils {
 	 * @return  PrivateKey
 	 * @throws Exception
 	 */
-	public static PrivateKey getPrivateKey(String privateKeyFileName) throws Exception{
-		KeyFactory rsaKeyFactory = KeyFactory.getInstance("RSA");
-		byte[] privateKey = FileUtils.toByteArray(privateKeyFileName);
-		PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKey);
-		PrivateKey key = rsaKeyFactory.generatePrivate(privateKeySpec);
+	public static PrivateKey getPrivateKey(String privateKeyFileName){
+		KeyFactory rsaKeyFactory;
+		PrivateKey key = null;
+		try {
+			rsaKeyFactory = KeyFactory.getInstance("RSA");
+			byte[] privateKey;
+			privateKey = FileUtils.toByteArray(privateKeyFileName);
+			PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKey);
+			key = rsaKeyFactory.generatePrivate(privateKeySpec);
+		} catch (InvalidKeySpecException e) {
+				e.printStackTrace();
+		}catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}catch (IOException e) {
+			e.printStackTrace();
+		}
 		System.out.println("private key is generated");
 		return key;
 	}
@@ -199,12 +216,22 @@ public class CryptoUtils {
 	 * @return PublicKey
 	 * @throws Exception
 	 */
-	public static PublicKey getPublicKey(String publicKeyFileName) throws Exception{
-		KeyFactory rsaKeyFactory = KeyFactory.getInstance("RSA");
-		byte[] publicKey = FileUtils.toByteArray(publicKeyFileName);
-		X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKey);
-		PublicKey key = rsaKeyFactory.generatePublic(publicKeySpec);
-		System.out.println("public key is generated");
+	public static PublicKey getPublicKey(String publicKeyFileName){
+		KeyFactory rsaKeyFactory;
+		PublicKey key = null;
+		try {
+			rsaKeyFactory = KeyFactory.getInstance("RSA");
+			byte[] publicKey = FileUtils.toByteArray(publicKeyFileName);
+			X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKey);
+			key = rsaKeyFactory.generatePublic(publicKeySpec);
+			System.out.println("public key is generated");
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InvalidKeySpecException e) {
+			e.printStackTrace();
+		}
 		return key;
 	}
 	
@@ -215,10 +242,25 @@ public class CryptoUtils {
 	 * @return cipherdata
 	 * @throws Exception
 	 */
-	public static byte[] encryptByRSAPublicKey(byte[] data, Key publicKey) throws Exception{
-		Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-        return cipher.doFinal(data);
+	public static byte[] encryptByRSAPublicKey(byte[] data, Key publicKey){
+		Cipher cipher;
+		try {
+			cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+		    cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+		    return cipher.doFinal(data);
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			e.printStackTrace();
+		} catch (InvalidKeyException e) {
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			e.printStackTrace();
+		}
+		System.out.println("decrypting error");
+        return data;
 	}
 	
 	/**
@@ -228,17 +270,38 @@ public class CryptoUtils {
 	 * @return plaintext
 	 * @throws Exception
 	 */
-	public static byte[] decryptByRSAPrivateKey(byte[] data, Key privateKey)throws Exception{
-		Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-        cipher.init(Cipher.DECRYPT_MODE, privateKey);
-        return cipher.doFinal(data);
+	public static byte[] decryptByRSAPrivateKey(byte[] data, Key privateKey){
+		Cipher cipher;
+		try {
+			cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+	        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+	        return cipher.doFinal(data);
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (NoSuchPaddingException e) {
+			e.printStackTrace();
+		} catch (InvalidKeyException e) {
+			e.printStackTrace();
+		} catch (IllegalBlockSizeException e) {
+			e.printStackTrace();
+		} catch (BadPaddingException e) {
+			e.printStackTrace();
+		}
+		System.out.println("decrypting error");
+		return data;
 	}
 	
 	/**
 	 * Generate 512-bits DH key pair
 	 */
-	public static Map<String, Key> generateDHKey() throws Exception{  
-		KeyPairGenerator keyPairGenerator=KeyPairGenerator.getInstance("DH");  
+	public static Map<String, Key> generateDHKey(){  
+		KeyPairGenerator keyPairGenerator = null;
+		try {
+			keyPairGenerator = KeyPairGenerator.getInstance("DH");
+		} catch (NoSuchAlgorithmException e) {
+			System.out.println("keypairGenerator error");
+			e.printStackTrace();
+		}  
         keyPairGenerator.initialize(512);  
         KeyPair keyPair=keyPairGenerator.generateKeyPair();  
         DHPublicKey publicKey=(DHPublicKey) keyPair.getPublic();  
@@ -300,19 +363,30 @@ public class CryptoUtils {
 	 * @return Map<keyname, key>
 	 * @throws Exception
 	 */
-	public static Map<String,Key> generateDHKey(byte[] key) throws Exception{  
+	public static Map<String,Key> generateDHKey(byte[] key) {  
 	    X509EncodedKeySpec x509KeySpec=new X509EncodedKeySpec(key);  
-	    KeyFactory keyFactory=KeyFactory.getInstance("DH");  
-	    PublicKey pubKey=keyFactory.generatePublic(x509KeySpec);  
-	    DHParameterSpec dhParamSpec=((DHPublicKey)pubKey).getParams();  
-        KeyPairGenerator keyPairGenerator=KeyPairGenerator.getInstance(keyFactory.getAlgorithm());  
-        keyPairGenerator.initialize(dhParamSpec);  
-        KeyPair keyPair=keyPairGenerator.genKeyPair();  
-        DHPublicKey publicKey=(DHPublicKey)keyPair.getPublic();  
-        DHPrivateKey privateKey=(DHPrivateKey)keyPair.getPrivate();  
+	    KeyFactory keyFactory = null;
         Map<String,Key> keyMap=new HashMap<String,Key>();  
-        keyMap.put("public_key", publicKey);  
-        keyMap.put("private_key", privateKey);  
+
+		try {
+			keyFactory = KeyFactory.getInstance("DH");
+		    PublicKey pubKey=keyFactory.generatePublic(x509KeySpec);  
+		    DHParameterSpec dhParamSpec=((DHPublicKey)pubKey).getParams();  
+	        KeyPairGenerator keyPairGenerator=KeyPairGenerator.getInstance(keyFactory.getAlgorithm());  
+	        keyPairGenerator.initialize(dhParamSpec); 
+	        KeyPair keyPair=keyPairGenerator.genKeyPair();  
+	        DHPublicKey publicKey=(DHPublicKey)keyPair.getPublic();  
+	        DHPrivateKey privateKey=(DHPrivateKey)keyPair.getPrivate();  
+	        keyMap.put("public_key", publicKey);  
+	        keyMap.put("private_key", privateKey);  
+	        
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (InvalidKeySpecException e) {
+			e.printStackTrace();
+		} catch (InvalidAlgorithmParameterException e) {
+			e.printStackTrace();
+		}  
         return keyMap;  
 	}
 	
@@ -324,23 +398,132 @@ public class CryptoUtils {
 	 * @throws NoSuchAlgorithmException 
 	 * @throws InvalidKeySpecException 
 	 */
-	public static byte[] generateSessionKey(byte[] publicKey, byte[] privateKey) throws InvalidKeyException, IllegalStateException, NoSuchAlgorithmException, InvalidKeySpecException{
+	public static byte[] generateSessionKey(byte[] publicKey, byte[] privateKey) {
 		
-		KeyFactory keyFactory=KeyFactory.getInstance("DH");  
-        X509EncodedKeySpec x509KeySpec=new X509EncodedKeySpec(publicKey);  
-        PublicKey pubKey=keyFactory.generatePublic(x509KeySpec);  
-        PKCS8EncodedKeySpec pkcs8KeySpec=new PKCS8EncodedKeySpec(privateKey);  
-        PrivateKey priKey=keyFactory.generatePrivate(pkcs8KeySpec);  
-        KeyAgreement keyAgree=KeyAgreement.getInstance(keyFactory.getAlgorithm());  
-        keyAgree.init(priKey);  
-        keyAgree.doPhase(pubKey, true);  
-        SecretKey secretKey=keyAgree.generateSecret("AES");  
+		KeyFactory keyFactory;
+		SecretKey secretKey = null;
+		
+		try {
+			keyFactory = KeyFactory.getInstance("DH");
+			X509EncodedKeySpec x509KeySpec=new X509EncodedKeySpec(publicKey);  
+		    PublicKey pubKey=keyFactory.generatePublic(x509KeySpec);  
+		    PKCS8EncodedKeySpec pkcs8KeySpec=new PKCS8EncodedKeySpec(privateKey);  
+		    PrivateKey priKey=keyFactory.generatePrivate(pkcs8KeySpec);  
+            KeyAgreement keyAgree=KeyAgreement.getInstance(keyFactory.getAlgorithm());  
+	        keyAgree.init(priKey);  
+	        keyAgree.doPhase(pubKey, true);  
+		    secretKey=keyAgree.generateSecret("AES");  
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		} catch (InvalidKeySpecException e) {
+			e.printStackTrace();
+		} catch (InvalidKeyException e) {
+			e.printStackTrace();
+		}  
         return secretKey.getEncoded();  
 	}
 	
+	/**
+	 * decrypt map byte with key and convert mapbyte to hashmap
+	 * @param mapbyte
+	 * @param key
+	 * @return
+	 */
+	public static HashMap<String, byte[]> getDecryptedMap(byte[] mapbyte, byte[] key){
+		HashMap<String, byte[]> map = new HashMap<String, byte[]>();
+		byte[] plaindata = null;
+		plaindata = CryptoUtils.decryptByAES(mapbyte, key);
+		map = CryptoUtils.mapFromByte(plaindata);
+		return map;
+	}
+	
+	/**
+	 * decrypt map byte with key and convert mapbyte to hashmap
+	 * @param mapbyte
+	 * @param key
+	 * @return
+	 */
+	public static HashMap<String, byte[]> getDecryptedMap(byte[] mapbyte, Key key){
+		HashMap<String, byte[]> map = new HashMap<String, byte[]>();
+		byte[] plaindata = null;
+		plaindata = CryptoUtils.decryptByAES(mapbyte, key);
+		map = CryptoUtils.mapFromByte(plaindata);
+		return map;
+	}
+	
+	/**
+	 * Hash with salt using SHA-256
+	 * @param string
+	 * @param salt
+	 * @return hash String
+	 */
+	public static String getSaltHash(String string, String salt)
+	{
+        String generatedPassword = null;
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(salt.getBytes());
+            byte[] bytes = md.digest(string.getBytes());
+            StringBuilder sb = new StringBuilder();
+            for(int i=0; i< bytes.length ;i++)
+            {
+                sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
+            }
+            generatedPassword = sb.toString();
+        } 
+        catch (NoSuchAlgorithmException e) 
+        {
+            e.printStackTrace();
+        }
+        return generatedPassword;
+    }
+
+    
+    /**
+     * Convert string to hexByte 
+     * @param string
+     * @return byte
+     */
+    public static byte[] hexStringToBytes(String str) {  
+        if (str == null || str.equals("")) {  
+            return null;  
+        }  
+        str = str.toUpperCase();  
+        int length = str.length() / 2;  
+        char[] hexChars = str.toCharArray();  
+        byte[] d = new byte[length];  
+        for (int i = 0; i < length; i++) {  
+            int pos = i * 2;  
+            d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));  
+        }  
+        return d;  
+    } 
+    
+    /** 
+     * Convert char to byte 
+     * @param char 
+     * @return byte 
+     */  
+    public static byte charToByte(char c) {  
+        return (byte) "0123456789ABCDEF".indexOf(c);  
+    } 
+    
+    /**
+     * input a hashmap and aeskey, return an encrypted byte array
+     * @param map
+     * @param key
+     * @return
+     */
+	public static byte[] getEncryptedMap(HashMap<String, byte[]> map, Key key){
+		byte[] inputdata = null;
+		byte[] cipherdata = null;
+		inputdata = CryptoUtils.mapToByte(map);
+		cipherdata = CryptoUtils.encryptByAES(inputdata, key);
+		return cipherdata;
+	}
 	
 	public static void main(String[] args) throws Exception {
-	
+		/*
 		byte[] a = new byte[16];
 		a = new String("ABCDEFG").getBytes();
 		byte[] encrypted = CryptoUtils.encryptByRSAPublicKey(a, CryptoUtils.getPublicKey("public.der"));
@@ -368,6 +551,7 @@ public class CryptoUtils {
 		if(str.equals("Hello")){
 		System.out.println(new String(cipher, "UTF-8"));
 		}
+		*/
 	}
 
 }

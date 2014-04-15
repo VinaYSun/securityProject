@@ -1,12 +1,15 @@
 package server;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.Key;
 import java.util.HashMap;
+import java.util.Map;
 
 public class Server {
 	
@@ -15,12 +18,16 @@ public class Server {
 	private HashMap<String, String> clientPortDict = null;
 	private HashMap<String, Key> clientSecretKeyDict = null;
 	private Key SecretKey;
-	
+	public Map<String, String> passwordBook = null;
+
+
 	public Server() {
 		try{
 			clientPortDict = new HashMap<String, String>();
 			clientSecretKeyDict = new HashMap<String, Key>();
-			
+			passwordBook = new HashMap<String, String>();
+			loadPassword("password.txt");
+
 			System.out.println("Please input the port # of server:");
 		    InputStreamReader is_reader = new InputStreamReader(System.in);
 	        
@@ -48,6 +55,30 @@ public class Server {
 		}
 	}
 
+	private void loadPassword(String passwordfile) {
+        try {
+        	FileReader reader = new FileReader(passwordfile);
+            BufferedReader br = new BufferedReader(reader);
+            String s1 = null;
+			while((s1 = br.readLine()) != null) {
+				String[] section = s1.split(":");
+			    String name = section[0];
+			    String pwdsalt = section[1];
+			    String pwd = section[2];
+			    System.out.println(name);
+			    System.out.println(pwdsalt);
+			    System.out.println(pwd);
+			    passwordBook.put(name, pwdsalt+":"+pwd);
+			}
+			reader.close();
+			br.close();
+		}catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} 
+	}
+	
 	public static void main(String args[]) throws IOException{
 		new Server();
 	}
@@ -74,5 +105,13 @@ public class Server {
 
 	public void setClientSecretKeyDict(HashMap<String, Key> clientSecretKeyDict) {
 		this.clientSecretKeyDict = clientSecretKeyDict;
+	}
+
+	public Map<String, String> getPasswordBook() {
+		return passwordBook;
+	}
+
+	public void setPasswordBook(Map<String, String> passwordBook) {
+		this.passwordBook = passwordBook;
 	}
 }

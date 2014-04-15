@@ -273,11 +273,9 @@ public class Message implements Serializable{
 		//message 2
 		Message msgIn2 = new Message(1,2);
 		byte[] random = new byte[128/8];
-		try {
-			random  = CryptoUtils.generateNonce();
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
+		
+		random  = CryptoUtils.generateNonce();
+		
 		String IP = "127.0.0.1";
 		
 		HashMap<String, byte[]> map = new HashMap<String, byte[]>();
@@ -356,7 +354,7 @@ public class Message implements Serializable{
 			map2.put("key", encryptedKey);
 			map2.put("datamap", mapbyte);
 			
-			str2 = getOutputStream(1, 3, map2);
+			String messagestr2 = getOutputStream(1, 3, map2);
 //			String str3 = getOutputStream(1, 3, map3, tmpKey);
 			
 //			String outputStr3 = str3 + "eof" + new String(encryptedKey, "UTF-8");
@@ -366,7 +364,9 @@ public class Message implements Serializable{
 //			String keyString = input[1];
 			
 			HashMap<String, byte[]> map7 = new HashMap<String, byte[]>();
-			map7 = getDataMap(str2);
+//			map7 = getDataMap(str2);
+			msgOut2 = MessageReader.messageFromJson(messagestr2);
+			map7 = CryptoUtils.mapFromByte(msgOut2.getDataBytes());
 			byte[] encyrptedmap = map7.get("datamap");
 			byte[] getKeybyte = map7.get("key");
 			
@@ -389,7 +389,7 @@ public class Message implements Serializable{
 			System.out.println("user: " + new String(usernamebyte, "UTF-8"));
 			
 			if(password.equals(new String(passwordbyte, "UTF-8"))){
-				System.out.println("correct 3 2");
+				System.out.println("correct 3 2!!!");
 			}
 			if((new String(R2)).equals(new String(r2byte))){
 				System.out.println("correct 3 2");
