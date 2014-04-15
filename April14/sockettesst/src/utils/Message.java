@@ -251,6 +251,14 @@ public class Message implements Serializable{
 		return map;
 	}
 	
+	public static HashMap<String, byte[]> getDecryptedMap(byte[] mapbyte, byte[] key){
+		HashMap<String, byte[]> map = new HashMap<String, byte[]>();
+		byte[] plaindata = null;
+		plaindata = CryptoUtils.decryptByAES(mapbyte, key);
+		map = CryptoUtils.mapFromByte(plaindata);
+		return map;
+	}
+	
 	public static void main(String args[]) throws NoSuchAlgorithmException{
 			
 		//message 1
@@ -319,9 +327,12 @@ public class Message implements Serializable{
 			//generate a tmp aeskey
 			tmpKey = CryptoUtils.generateAESKey(keybyte);
 			
-			//ecrypt key
+			//ecrypt key byte1 Kpub{aeskey}
 			byte[] encryptedKey = CryptoUtils.encryptByRSAPublicKey(keybyte, CryptoUtils.getPublicKey("public.der"));
 	        
+			System.out.println("Key length" + encryptedKey.length);
+	        System.out.println("Key length" + keybyte.length);
+
 			//prepare parameters
 			byte[] R2 = CryptoUtils.generateNonce();
 			String password = "thankyou";
@@ -337,28 +348,34 @@ public class Message implements Serializable{
 			map3.put("username", username.getBytes(Charset.forName("UTF-8")));
 			map3.put("gamodp", dhKeyMap.get("public_key").getEncoded());
 			
-			/**
-			 * give protocol, step, map, key, have output stream back 
-			 * 
-			 */
+			//convert map -> encrypted byte
+			byte[] mapbyte = getEncryptedMap(map3, tmpKey);
 			
-			String str3 = getOutputStream(1, 3, map3, tmpKey);
+			//put encryptedkey and mapbyte into a map 
+			map2 = new HashMap<String, byte[]>();
+			map2.put("key", encryptedKey);
+			map2.put("datamap", mapbyte);
 			
-			String outputStr3 = str3 + "eof" + "asldkfjla;skjdflkajsd";
+			str2 = getOutputStream(1, 3, map2);
+//			String str3 = getOutputStream(1, 3, map3, tmpKey);
 			
-			String[] input = outputStr3.split("eof");
-			String inputStr1 = input[0];
-			System.out.println("encrypted key"+ input[1]);
+//			String outputStr3 = str3 + "eof" + new String(encryptedKey, "UTF-8");
+			
+//			String[] input = outputStr3.split("eof");
+//			String inputStr1 = input[0];
+//			String keyString = input[1];
+			
+			HashMap<String, byte[]> map7 = new HashMap<String, byte[]>();
+			map7 = getDataMap(str2);
+			byte[] encyrptedmap = map7.get("datamap");
+			byte[] getKeybyte = map7.get("key");
+			
 			HashMap<String, byte[]> map4 = new HashMap<String, byte[]>();
 			
-			byte[] decryptedKey = CryptoUtils.decryptByRSAPrivateKey(encryptedKey, CryptoUtils.getPrivateKey("private.der"));
-	        System.out.println("!!!!!!!!!!!keybytes+1 : " + new String(keybyte));
-			System.out.println("!!!!!!!!!!!keybytes+2: " + new String(decryptedKey));
-			
-			Key generatedAeskey = CryptoUtils.generateAESKey(keybyte);
-			map4 = getDataMap(inputStr1, generatedAeskey);
-			System.out.println("Protocol: "+ getPid(inputStr1));
-			System.out.println("Protocol: "+ getSid(inputStr1));
+			byte[] decryptedKey = CryptoUtils.decryptByRSAPrivateKey(getKeybyte, CryptoUtils.getPrivateKey("private.der"));
+//			byte[] decryptedmap = CryptoUtils.decryptByAES(encyrptedmap, decryptedKey);
+//			Key generatedAeskey = CryptoUtils.generateAESKey(decryptedKey);
+			map4 = getDecryptedMap(encyrptedmap, decryptedKey);
 
 			byte[] passwordbyte = map4.get("password");
 			byte[] r2byte= map4.get("R2");
@@ -372,10 +389,10 @@ public class Message implements Serializable{
 			System.out.println("user: " + new String(usernamebyte, "UTF-8"));
 			
 			if(password.equals(new String(passwordbyte, "UTF-8"))){
-				System.out.println("correct1");
+				System.out.println("correct 3 2");
 			}
 			if((new String(R2)).equals(new String(r2byte))){
-				System.out.println("correct2");
+				System.out.println("correct 3 2");
 			}
 			
 			
@@ -432,14 +449,14 @@ public class Message implements Serializable{
         	Key sessionKey2=   CryptoUtils.generateAESKey(KasforServer);
         	
 			//pack R3
-			HashMap<String, byte[]> map7 = new HashMap<String, byte[]>();
-			map7.put("R3", r3byte);
+			HashMap<String, byte[]> map9 = new HashMap<String, byte[]>();
+			map9.put("R3", r3byte);
 			
-			String str7 = getOutputStream(1, 5, map7, sessionKey);
+			String str9 = getOutputStream(1, 5, map9, sessionKey);
 			
 			
 			HashMap<String, byte[]> map8 = new HashMap<String, byte[]>();
-			map8 = getDataMap(str7, sessionKey2);
+			map8 = getDataMap(str9, sessionKey2);
 			byte[] r3back = map8.get("R3");
 			if((new String(r3back)).equals(new String(r3byte))){
 				System.out.println("Step 5 correct!");
