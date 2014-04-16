@@ -9,6 +9,10 @@ import java.nio.charset.Charset;
 import java.security.Key;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import server.Server;
 import utils.CryptoUtils;
@@ -78,10 +82,10 @@ public class ServerListener extends Thread{
 	        		 loginRequest(messageFromServer);
 	        		 break;
 	        	 case LIST_REQUEST:
-	        		 listRequest();
+	        		 listRequest(messageFromServer);
 	        		 break;
 	        	 case CHAT_REQUEST:
-	        		 chatRequest();
+	        		 chatRequest(messageFromServer);
 	        		 break;
 	        	 case LOGOUT_REQUEST:
 	        		 logoutRequest();
@@ -104,16 +108,60 @@ public class ServerListener extends Thread{
 		
 	}
 
+	private void chatRequest(Message message) {
+		int step = message.getStepId();
+		if(step == 2){
+			handleMessage32(message.getDataBytes());
+		}else{
+			System.out.println("Step doesn't exist");
+		}
+	}
+
+	//1. get peer ticket request dict  (ticket messages pool )
+	//2. save <peername, decrypted mapdata> in the map
+	//set map to client object
+	private void handleMessage32(byte[] dataBytes) {
+		HashMap<String, byte[]> mapin = new HashMap<String, byte[]>();
+		if(secretKeyKas !=null){
+			mapin = CryptoUtils.getDecryptedMap(dataBytes, secretKeyKas);
+			String peername = new String(mapin.get("receiver"));
+			HashMap<String, Map<String, byte[]>> map = client.getPeerTicketRequestDict();
+			map.put(peername, mapin);
+			client.setPeerTicketRequestDict(map);
+		}
+	}
+
 	private void logoutRequest() {
 		
 	}
 
-	private void chatRequest() {
-		
+	private void listRequest(Message message) {
+		int step = message.getStepId();
+		if(step == 2){
+			handleMessage22(message.getDataBytes(), message.getTimestamp());
+		}else{
+			System.out.println("Step doesn't exist");
+		}
 	}
 
-	private void listRequest() {
-		
+	private void handleMessage22(byte[] dataBytes, String timestamp) {
+		HashMap<String, byte[]> mapin = new HashMap<String, byte[]>();
+		if(secretKeyKas !=null){
+			//check time stamp 
+			String str1 = client.getListRequestTime();
+			System.out.println("sent time: " + str1);
+			System.out.println("get time" + timestamp);
+			if(str1.equals(timestamp)){
+				
+			}
+			byte[] plaindata = CryptoUtils.decryptByAES(dataBytes, secretKeyKas);
+			Gson gson = new Gson();
+			Set<String> nameset = gson.fromJson(new String(plaindata), new TypeToken<Set<String>>(){}.getType());
+			System.out.println("online user list: ");
+			for (String str : nameset) {
+			      System.out.println(str);
+			}
+		}
 	}
 
 	private void loginRequest(Message fromServer) {
@@ -169,6 +217,7 @@ public class ServerListener extends Thread{
 		mapout.put("mapdata", mapbyte);
 
 		messageToServer.setStepId(3);
+		messageToServer.setProtocolId(1);
 		messageToServer.setData(CryptoUtils.mapToByte(mapout));
 		String str = MessageReader.messageToJson(messageToServer);
          //send message;
@@ -197,6 +246,7 @@ public class ServerListener extends Thread{
 			byte[] cipherdata = CryptoUtils.encryptByAES(output, getSecretKeyKas());
 
 			messageToServer.setStepId(5);
+			messageToServer.setProtocolId(1);
 			messageToServer.setData(cipherdata);
 			String str = MessageReader.messageToJson(messageToServer);
 	        //send message;
@@ -209,6 +259,7 @@ public class ServerListener extends Thread{
     	byte[] kas  = CryptoUtils.generateSessionKey(gsmodp, DHClientPriKey.getEncoded());
     	Key sessionKey = CryptoUtils.generateAESKey(kas);
     	setSecretKeyKas(sessionKey);
+    	client.setSecretKeyKas(sessionKey);
 	}
 	
 	private Key getWKey() {

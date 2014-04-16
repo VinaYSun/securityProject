@@ -10,6 +10,7 @@ import java.nio.charset.Charset;
 import java.security.Key;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import utils.CryptoUtils;
 import utils.Message;
@@ -95,10 +96,10 @@ public class ServerThread extends Thread{
 	        		 loginRequest(messageFromClient);
 	        		 break;
 	        	 case LIST_REQUEST:
-	        		 listRequest();
+	        		 listRequest(messageFromClient);
 	        		 break;
 	        	 case CHAT_REQUEST:
-	        		 chatRequest();
+	        		 chatRequest(messageFromClient);
 	        		 break;
 	        	 case LOGOUT_REQUEST:
 	        		 logoutRequest();
@@ -118,12 +119,90 @@ public class ServerThread extends Thread{
 	}
 
 
-	private void chatRequest() {
-		
+	private void chatRequest(Message message) {
+		int step = message.getStepId();
+		if(step == 1){
+			handleMessage31(message.getDataBytes());
+		}else{
+			System.out.println("Step doesn't exist");
+		}
 	}
 
 
-	private void listRequest() {
+	private void handleMessage31(byte[] data) {
+		HashMap<String, byte[]> mapin = new HashMap<String, byte[]>();
+		HashMap<String, byte[]> mapout = new HashMap<String, byte[]>();
+
+		if(secretKeyKas !=null){
+			mapin = CryptoUtils.getDecryptedMap(data, secretKeyKas);
+			byte[] receiver = mapin.get("receiver");
+			byte[] R4 = mapin.get("R4");
+			byte[] sender = mapin.get("sender");
+			
+			String receiverName = new String(receiver);
+			clientPortDict = server.getClientPortDict();
+			if(clientPortDict.containsKey(receiverName)){
+				//receiver is online
+				byte[] ticket = prepareTicket(new String(receiver));
+				
+				//prepare kab
+				byte[] keybyteKab = CryptoUtils.generateNonce();
+				
+				mapout.put("TicketB", ticket);
+				mapout.put("receiver", receiver);
+				mapout.put("port", clientPortDict.get(receiverName).getBytes());
+				mapout.put("R4", R4);
+				mapout.put("kab", keybyteKab);
+			}else{
+				//reciever is offline or doesn't exist
+				//just put a receiver inside
+				mapout.put("receiver", receiver);
+				
+			}
+			String msgstr = CryptoUtils.getOutputStream(3, 2, mapout, secretKeyKas);
+			out.println(msgstr);
+		}
+	}
+
+	private byte[] prepareTicket(String str) {
+		
+		//Kbs{Kab, A}
+		return null;
+	}
+
+
+	private void listRequest(Message message) {
+		int step = message.getStepId();
+		if(step == 1){
+			handleMessage21(message.getDataBytes());
+		}else{
+			System.out.println("Step doesn't exist");
+		}
+	}
+
+
+	private void handleMessage21(byte[] data) {
+		HashMap<String, byte[]> mapin = new HashMap<String, byte[]>();
+
+		if(secretKeyKas !=null){
+			mapin = CryptoUtils.getDecryptedMap(data, secretKeyKas);
+			byte[] list = mapin.get("list");
+			if((new String(list)).equals("list")){
+				clientPortDict = server.getClientPortDict();
+				//get names 
+				Set<String> nameSet = clientPortDict.keySet();
+				//encrypt nameset
+				Gson gson = new Gson();
+				String str = gson.toJson(nameSet, new TypeToken<Set<String>>(){}.getType());
+				byte[] cipherdata = CryptoUtils.encryptByAES(str.getBytes(), secretKeyKas);
+				
+				messageToClient.setProtocolId(2);
+				messageToClient.setStepId(2);
+				messageToClient.setData(cipherdata);
+				String strout = MessageReader.messageToJson(messageToClient);
+		        out.println(strout);
+			}
+		}
 		
 	}
 

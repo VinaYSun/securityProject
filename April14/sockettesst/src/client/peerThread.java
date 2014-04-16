@@ -22,7 +22,7 @@ public class peerThread extends Thread{
 	private byte[] gamodp;
 	private byte[] gbmodp;
 	private byte[] gabmodp;
-	private Key secretKey;
+	private Key sercretKeyKab;
 	
 	public peerThread(Client c, Socket s){
 		this.client = c;

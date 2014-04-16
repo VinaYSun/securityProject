@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.Key;
 import java.util.HashMap;
+import java.util.Map;
 
 import utils.Message;
 import utils.MessageReader;
@@ -21,10 +22,14 @@ public class Client {
 	private String username;
 	private String password;
 	private String portForPeers;
+	private String listRequestTime;
+	private String logoutRequestTime;
 
 	private HashMap<String, String> clientPortDict = null;
 	private HashMap<String, Key> peerSecretKeyDict = null;
-	
+	private HashMap<String, Socket> clientSocketDict = null;
+	private HashMap<String, byte[]> peerTicketDict = null;
+	private HashMap<String, Map<String, byte[]>> peerTicketRequestDict = null;
 	//parameters for client future use
 	private Key PublicKey;
 	private byte[] gamodp;
@@ -46,6 +51,9 @@ public class Client {
 	
 			clientPortDict = new HashMap<String, String>();
 			peerSecretKeyDict = new HashMap<String, Key>();
+			clientSocketDict = new HashMap<String, Socket>();
+			peerTicketDict = new HashMap<String,  byte[]>();
+			peerTicketRequestDict = new HashMap<String,  Map<String, byte[]>>();
 			
 			BufferedReader inputRead = new BufferedReader(new InputStreamReader(System.in));
 			initPeerListener(inputRead);
@@ -202,5 +210,37 @@ public class Client {
 	
 	public static void main(String args[]) throws IOException {
 		new Client();
+	}
+
+	public String getListRequestTime() {
+		return listRequestTime;
+	}
+
+	public void setListRequestTime(String listRequestTime) {
+		this.listRequestTime = listRequestTime;
+	}
+
+	public HashMap<String, Socket> getClientSocketDict() {
+		return clientSocketDict;
+	}
+
+	public void setClientSocketDict(HashMap<String, Socket> clientSocketDict) {
+		this.clientSocketDict = clientSocketDict;
+	}
+
+	public HashMap<String, byte[]> getPeerTicketDict() {
+		return peerTicketDict;
+	}
+
+	public void setPeerTicketDict(HashMap<String, byte[]> peerTicketDict) {
+		this.peerTicketDict = peerTicketDict;
+	}
+
+	public HashMap<String, Map<String, byte[]>> getPeerTicketRequestDict() {
+		return peerTicketRequestDict;
+	}
+
+	public void setPeerTicketRequestDict(HashMap<String, Map<String, byte[]>> peerTicketRequestDict) {
+		this.peerTicketRequestDict = peerTicketRequestDict;
 	}
 }

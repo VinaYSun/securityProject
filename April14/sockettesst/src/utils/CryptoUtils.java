@@ -508,6 +508,30 @@ public class CryptoUtils {
         return (byte) "0123456789ABCDEF".indexOf(c);  
     } 
     
+	
+	/**
+	 * get output with map encrypted
+	 * @param protocolId
+	 * @param stepId
+	 * @param map
+	 * @param key
+	 * @return
+	 */
+	public static String getOutputStream(int protocolId, int stepId, HashMap<String, byte[]> map, Key key) {
+		String output = null;
+		byte[] inputdata = null;
+		byte[] cipherdata = null;
+ 		
+		inputdata = CryptoUtils.mapToByte(map);
+		cipherdata = CryptoUtils.encryptByAES(inputdata, key);
+		
+		Message msg = new Message(protocolId, stepId);
+		msg.setData(cipherdata);
+		output = MessageReader.messageToJson(msg);
+		
+		return output;
+	}
+	
     /**
      * input a hashmap and aeskey, return an encrypted byte array
      * @param map
