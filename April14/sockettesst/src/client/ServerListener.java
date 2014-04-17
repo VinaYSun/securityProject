@@ -88,23 +88,13 @@ public class ServerListener extends Thread{
 	        		 chatRequest(messageFromServer);
 	        		 break;
 	        	 case LOGOUT_REQUEST:
-	        		 logoutRequest();
+	        		 logoutRequest(messageFromServer);
 	        		 break;
 	        	 default:
 	        		 break;
 	         }
 	         
-//	         messageToServer.setProtocolId(1);
-//	         
-//	         if( messageToServer.getDataBytes() == null || messageToServer.getStepId() == 0){
-//	        	 messageToServer.setProtocolId(9);
-//	        	 messageToServer.setStepId(9);
-//	        	 messageToServer.setData("wrong");
-//	         }
-			
-	         
         }
-       
 		
 	}
 
@@ -131,8 +121,36 @@ public class ServerListener extends Thread{
 		}
 	}
 
-	private void logoutRequest() {
-		
+	private void logoutRequest(Message message) {
+		int step = message.getStepId();
+		if(step == 2){
+			handleMessage52(message.getDataBytes(), message.getTimestamp());
+		}else{
+			System.out.println("Step doesn't exist");
+		}
+	}
+
+	private void handleMessage52(byte[] dataBytes, String timestamp) {
+		HashMap<String, byte[]> mapin = new HashMap<String, byte[]>();
+		if(secretKeyKas !=null){
+			
+			//check time stamp 
+			String str1 = client.getLogoutRequestTime();
+			System.out.println("sent time: " + str1);
+			System.out.println("get time" + timestamp);
+			if(str1.equals(timestamp)){
+				
+			}
+			
+			mapin = CryptoUtils.getDecryptedMap(dataBytes, secretKeyKas);
+			byte[] R6 = mapin.get("logout");
+			byte[] confirm = mapin.get("confirm");
+			if((new String(R6)).equals(client.getR6()) && (new String(confirm)).equals("confirm")){
+				
+				
+				System.out.println("Succesfully logged out!");
+			}
+		}
 	}
 
 	private void listRequest(Message message) {

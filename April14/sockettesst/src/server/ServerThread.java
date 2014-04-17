@@ -30,7 +30,7 @@ public class ServerThread extends Thread{
 	private Map<String, String> passwordBook;
 
 	//parameters for this user thread
-	private String username;
+	private String username = null;
 	private byte[] gamodp;
 	private byte[] gsmodp;
 	private byte[] gasmodp;
@@ -48,7 +48,8 @@ public class ServerThread extends Thread{
 	private static final int CHAT_REQUEST = 3;
 	private static final int LOGOUT_REQUEST = 5;
 	private Map<String, Key> DHServerKeyPair;
-
+	private boolean stop = false;
+	
 
 
 	public ServerThread(Server s, Socket client){
@@ -72,50 +73,81 @@ public class ServerThread extends Thread{
 	@Override
 	public void run() {
 		try {
-			handleSocket();
+			while(!stop){
+				isOnline();
+				handleSocket();
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
 	}
+
+	//check if the client socket is still open 
+	private void isOnline() {
+		try{
+            clientSocket.sendUrgentData(0xFF); 
+		}catch(Exception e){
+	        removeClientPortDict();
+	        removeClientSecretKeyDict();
+	        stop = true;
+		}
+	}
+
 
 	private void handleSocket() throws IOException {
 		
-         while(true){
-        	 
 	         String temp = in.readLine();
 	         
-	         if(temp==null) continue;
-	         
-//	         System.out.println(temp);
-	         
-	         messageFromClient = MessageReader.messageFromJson(temp);
-	         messageToClient = new Message(0,0);
-	         
-	         switch (messageFromClient.getProtocolId()){
-	        	 case LOGIN_AUTH:
-	        		 loginRequest(messageFromClient);
-	        		 break;
-	        	 case LIST_REQUEST:
-	        		 listRequest(messageFromClient);
-	        		 break;
-	        	 case CHAT_REQUEST:
-	        		 chatRequest(messageFromClient);
-	        		 break;
-	        	 case LOGOUT_REQUEST:
-	        		 logoutRequest();
-	        		 break;
-	        	 default:
-	        		 break;
+	         if(temp!=null){
+	        	  
+//		         System.out.println(temp);
+		         
+		         messageFromClient = MessageReader.messageFromJson(temp);
+		         messageToClient = new Message(0,0);
+		         
+		         switch (messageFromClient.getProtocolId()){
+		        	 case LOGIN_AUTH:
+		        		 loginRequest(messageFromClient);
+		        		 break;
+		        	 case LIST_REQUEST:
+		        		 listRequest(messageFromClient);
+		        		 break;
+		        	 case CHAT_REQUEST:
+		        		 chatRequest(messageFromClient);
+		        		 break;
+		        	 case LOGOUT_REQUEST:
+		        		 logoutRequest(messageFromClient);
+		        		 break;
+		        	 default:
+		        		 break;
+		        }
 	         }
-//	         if( messageToClient.getDataBytes() == null || messageToClient.getStepId() == 0){
-//	        	 System.out.println("Got unvalid message");
-//	         }
-         }
 	}
 	
 	
-	private void logoutRequest() {
-		
+	private void logoutRequest(Message message) {
+		int step = message.getStepId();
+		if(step == 1){
+			handleMessage51(message.getDataBytes());
+		}else{
+			System.out.println("Step doesn't exist");
+		}
+	}
+
+
+	private void handleMessage51(byte[] data) {
+		HashMap<String, byte[]> mapin = new HashMap<String, byte[]>();
+		if(secretKeyKas !=null){
+			mapin = CryptoUtils.getDecryptedMap(data, secretKeyKas);
+			//map in = {"logout",R6}, add "confirm"
+			mapin.put("confirm", "confirm".getBytes());
+			String strout = CryptoUtils.getOutputStream(5, 2, mapin, secretKeyKas);
+	        out.println(strout);
+	        removeClientPortDict();
+	        removeClientSecretKeyDict();
+	        stop = true;
+		}
 	}
 
 
@@ -379,6 +411,30 @@ public class ServerThread extends Thread{
 		}
 		clientSecretKeyDict.put(getUsername(), getSecretKeyKas());
 		server.setClientSecretKeyDict(clientSecretKeyDict);;
+	}
+	
+	
+	/**
+	 * (after authentication) get client name and its opening port, save to address book
+	 * @param str
+	 */
+	private void removeClientPortDict() {
+	    HashMap<String, String> clientPortDict = new HashMap<String, String>();
+	    clientPortDict = server.getClientPortDict();
+	    if(clientPortDict.containsKey(getUsername())){
+	    	  clientPortDict.remove(getUsername());
+			  server.setClientPortDict(clientPortDict);
+			  System.out.println("delete user: " + getUsername());		
+		}
+	}
+
+	private void removeClientSecretKeyDict() {
+		HashMap<String, Key> clientSecretKeyDict = new HashMap<String, Key>();
+		clientSecretKeyDict = server.getClientSecretKeyDict();
+		if(clientSecretKeyDict.containsKey(getUsername())){
+			clientSecretKeyDict.remove(getUsername());
+			server.setClientSecretKeyDict(clientSecretKeyDict);
+		}
 	}
 	
 	public byte[] getGamodp() {

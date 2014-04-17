@@ -41,6 +41,7 @@ public class Client {
 	private byte[] R3;
 	private byte[] R4;
 	private byte[] R5;
+	private byte[] R6;
 	private byte[] pwdKey;
 	private byte[] ticketToPeer;
 	private byte[] peerName;
@@ -242,5 +243,21 @@ public class Client {
 
 	public void setPeerTicketRequestDict(HashMap<String, Map<String, byte[]>> peerTicketRequestDict) {
 		this.peerTicketRequestDict = peerTicketRequestDict;
+	}
+
+	public byte[] getR6() {
+		return R6;
+	}
+
+	public void setR6(byte[] r6) {
+		R6 = r6;
+	}
+
+	public String getLogoutRequestTime() {
+		return logoutRequestTime;
+	}
+
+	public void setLogoutRequestTime(String logoutRequestTime) {
+		this.logoutRequestTime = logoutRequestTime;
 	}
 }

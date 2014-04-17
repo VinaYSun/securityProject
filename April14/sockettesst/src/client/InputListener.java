@@ -97,9 +97,7 @@ public class InputListener extends Thread{
     	        	 	}
     	        	 	
     	         }else if(temp.equalsIgnoreCase("list")){
-    	        	 System.out.println("==========");
     	        	 requestList();
-    	        	 
     	         }else if(temp.equalsIgnoreCase("logout")){
     	        	 requestLogout();
     	         }else{
@@ -189,7 +187,6 @@ public class InputListener extends Thread{
 		HashMap<String, byte[]> mapout = new HashMap<String, byte[]>();
 
 		try {
-//			BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
 			
 			R5 = CryptoUtils.generateNonce();
@@ -294,10 +291,27 @@ public class InputListener extends Thread{
 
 	private void requestLogout() {
 		//send server Kas{logout}
-	    //server knows who is off , update user-secretkey map and update user-port map
+	    
+		//server knows who is off , update user-secretkey map and update user-port map
 	    
 	    //get peerSecret key list
 	    //send everyone(iterate map keys(username)) on the list, a logout notice
+		
+		//send kas{logout}
+		messageToServer = new Message(5, 1);
+		//preapare kas{logout}
+		HashMap<String, byte[]> mapout = new HashMap<String, byte[]>();
+		byte[] R6 = CryptoUtils.generateNonce();
+		client.setR6(R6);
+		mapout.put("logout", R6);
+		byte[] data = CryptoUtils.getEncryptedMap(mapout, client.getSecretKeyKas());
+		messageToServer.setData(data);
+		String str = MessageReader.messageToJson(messageToServer);
+		//save list request sent time
+		client.setListRequestTime(messageToServer.getTimestamp());
+        outServer.println(str);
+        System.out.println("Send logout request");
+		
 	}
 
 	private void requestList() {
@@ -312,7 +326,7 @@ public class InputListener extends Thread{
 		//save list request sent time
 		client.setListRequestTime(messageToServer.getTimestamp());
         outServer.println(str);
-        System.out.println("Send list request");
+//        System.out.println("Send list request");
 	}
 
 	private void inputReminder() {
