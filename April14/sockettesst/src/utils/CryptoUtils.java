@@ -546,7 +546,92 @@ public class CryptoUtils {
 		return cipherdata;
 	}
 	
+	/**
+	 * Get message digest by SHA-256
+	 * @param string
+	 * @param salt
+	 * @return hash String
+	 * @throws NoSuchAlgorithmException 
+	 */
+	public static byte[] getMD5(byte[] data){
+		  MessageDigest md = null;
+		try {
+			md = MessageDigest.getInstance("SHA-256");
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+          md.update(data);
+          return md.digest();
+	}
+	
+	/**
+	 * Get message digest by SHA-256
+	 * @param string
+	 * @param salt
+	 * @return hash String
+	 * @throws NoSuchAlgorithmException 
+	 */
+	public static byte[] getMD5(String data){
+		MessageDigest md = null;
+		try {
+			md = MessageDigest.getInstance("SHA-256");
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        md.update(data.getBytes());
+        return md.digest();
+	}
+	
+	/**
+	 * get output with map not encrypted
+	 * @param protocolId
+	 * @param stepId
+	 * @param map
+	 * @return
+	 */
+	public static String getOutputStream(int protocolId, int stepId, HashMap<String, byte[]> map) {
+		String output = null;
+		byte[] inputdata = null;
+ 		
+		inputdata = CryptoUtils.mapToByte(map);
+		
+		Message msg = new Message(protocolId, stepId);
+		msg.setData(inputdata);
+		output = MessageReader.messageToJson(msg);
+		
+		return output;
+	}
+	
+	/**
+	 * get a input string (decrypted) and Key, and return a map
+	 * @param in
+	 * @param key in byte
+	 * @return
+	 */
+	public static HashMap<String, byte[]> getDataMap(String in, byte[] key) {
+		HashMap<String, byte[]> map = new HashMap<String, byte[]>();
+
+		byte[] plaindata = null;
+		byte[] cipherdata = null;
+
+		Message msg = new Message();
+		msg = MessageReader.messageFromJson(in);
+		cipherdata = msg.getDataBytes();
+		plaindata = CryptoUtils.decryptByAES(cipherdata, key);
+		map = CryptoUtils.mapFromByte(plaindata);
+
+		return map;
+	}
+
+	
 	public static void main(String[] args) throws Exception {
+		
+		
+		System.out.println(new String(getMD5("Hello")));
+		System.out.println(new String(getMD5("Hello")));
+		
 		/*
 		byte[] a = new byte[16];
 		a = new String("ABCDEFG").getBytes();

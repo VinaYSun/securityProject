@@ -86,7 +86,7 @@ public class ServerThread extends Thread{
 	         
 	         if(temp==null) continue;
 	         
-	         System.out.println(temp);
+//	         System.out.println(temp);
 	         
 	         messageFromClient = MessageReader.messageFromJson(temp);
 	         messageToClient = new Message(0,0);
@@ -142,12 +142,11 @@ public class ServerThread extends Thread{
 			String receiverName = new String(receiver);
 			clientPortDict = server.getClientPortDict();
 			if(clientPortDict.containsKey(receiverName)){
-				//receiver is online
-				byte[] ticket = prepareTicket(new String(receiver));
-				
 				//prepare kab
 				byte[] keybyteKab = CryptoUtils.generateNonce();
-				
+				//receiver is online
+				byte[] ticket = prepareTicket(sender, keybyteKab, receiverName);
+			
 				mapout.put("TicketB", ticket);
 				mapout.put("receiver", receiver);
 				mapout.put("port", clientPortDict.get(receiverName).getBytes());
@@ -164,10 +163,16 @@ public class ServerThread extends Thread{
 		}
 	}
 
-	private byte[] prepareTicket(String str) {
-		
+	private byte[] prepareTicket(byte[] sender, byte[] keybyteKab, String receiver) {
+		//get  {kab, a }
+		HashMap<String, byte[]> mapout = new HashMap<String, byte[]>();
+		mapout.put("kabbyte", keybyteKab);
+		mapout.put("A", sender);
+		//get kbs
+		Key kbs = server.getClientSecretKeyDict().get(receiver);
 		//Kbs{Kab, A}
-		return null;
+		byte[] ticket = CryptoUtils.getEncryptedMap(mapout, kbs);
+		return ticket;
 	}
 
 

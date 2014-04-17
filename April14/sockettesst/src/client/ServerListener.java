@@ -72,7 +72,7 @@ public class ServerListener extends Thread{
 	         
 	         if(temp==null) continue;
 	         
-	         System.out.println(temp);
+//	         System.out.println(temp);
 	         
 	         messageFromServer = MessageReader.messageFromJson(temp);
 	         messageToServer = new Message(0,0);
