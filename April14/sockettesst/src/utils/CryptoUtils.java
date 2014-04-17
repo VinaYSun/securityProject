@@ -206,7 +206,7 @@ public class CryptoUtils {
 		}catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("private key is generated");
+//		System.out.println("private key is generated");
 		return key;
 	}
 	
@@ -224,7 +224,7 @@ public class CryptoUtils {
 			byte[] publicKey = FileUtils.toByteArray(publicKeyFileName);
 			X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKey);
 			key = rsaKeyFactory.generatePublic(publicKeySpec);
-			System.out.println("public key is generated");
+//			System.out.println("public key is generated");
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

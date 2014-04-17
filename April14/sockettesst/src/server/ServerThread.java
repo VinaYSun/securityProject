@@ -61,8 +61,7 @@ public class ServerThread extends Thread{
 	        passwordBook = s.getPasswordBook();
 	        
 			clientPortDict = new HashMap<String, String>();
-			
-			privateKey = CryptoUtils.getPrivateKey("private.der");
+			privateKey = server.getPrivateKey();
 			
 		}catch(IOException e){
 			e.printStackTrace();

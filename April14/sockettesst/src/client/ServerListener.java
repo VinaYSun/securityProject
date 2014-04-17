@@ -8,6 +8,7 @@ import java.net.Socket;
 import java.nio.charset.Charset;
 import java.security.Key;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -58,7 +59,9 @@ public class ServerListener extends Thread{
 	@Override
 	public void run(){
 		try {
-			handleSocket();
+			while(client.isConnected()){
+				handleSocket();
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -66,11 +69,9 @@ public class ServerListener extends Thread{
 
 	private void handleSocket() throws IOException{
 
-        while(true){
-       	 
 	         String temp = in.readLine();
 	         
-	         if(temp==null) continue;
+	         if(temp!=null){
 	         
 //	         System.out.println(temp);
 	         
@@ -93,9 +94,7 @@ public class ServerListener extends Thread{
 	        	 default:
 	        		 break;
 	         }
-	         
-        }
-		
+	    } 
 	}
 
 	private void chatRequest(Message message) {
@@ -136,21 +135,46 @@ public class ServerListener extends Thread{
 			
 			//check time stamp 
 			String str1 = client.getLogoutRequestTime();
-			System.out.println("sent time: " + str1);
-			System.out.println("get time" + timestamp);
+//			System.out.println("sent time: " + str1);
+			System.out.println("Time: " + timestamp);
 			if(str1.equals(timestamp)){
-				
-			}
-			
-			mapin = CryptoUtils.getDecryptedMap(dataBytes, secretKeyKas);
-			byte[] R6 = mapin.get("logout");
-			byte[] confirm = mapin.get("confirm");
-			if((new String(R6)).equals(client.getR6()) && (new String(confirm)).equals("confirm")){
-				
-				
-				System.out.println("Succesfully logged out!");
+				mapin = CryptoUtils.getDecryptedMap(dataBytes, secretKeyKas);
+				byte[] R6 = mapin.get("logout");
+				byte[] confirm = mapin.get("confirm");
+				if((new String(confirm)).equals("confirm")){
+					client.setConnected(false);
+					setAllSocketClosed(client.getClientSocketDict());
+					System.out.println("Logged out!");
+				}
 			}
 		}
+	}
+
+	private void setAllSocketClosed(HashMap<String, Socket> map) {
+		try{
+			//给所有的 socket 对应的serversocket 下的接收socket发信说要关闭线程
+			HashMap<String, Key> keymap = client.getPeerSecretKeyDict();
+			HashMap<String, byte[]> mapdata = new HashMap<String, byte[]>();
+
+			for (String name: map.keySet()) {
+		        PrintWriter out = new PrintWriter(map.get(name).getOutputStream(), true);
+		        byte[] b = "logout".getBytes();
+		        mapdata.put("logout", b);
+		        mapdata.put("sig", CryptoUtils.getMD5(b));
+
+		        String str = CryptoUtils.getOutputStream(5, 3, mapdata, keymap.get(name));
+		        out.println(str); 
+		        try {
+					sleep(50);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				socket.close();
+			}
+		}catch(IOException e){
+			e.printStackTrace();
+		}
+	
 	}
 
 	private void listRequest(Message message) {
@@ -163,21 +187,21 @@ public class ServerListener extends Thread{
 	}
 
 	private void handleMessage22(byte[] dataBytes, String timestamp) {
-		HashMap<String, byte[]> mapin = new HashMap<String, byte[]>();
+		Set<String> nameset = new HashSet<String>();
 		if(secretKeyKas !=null){
 			//check time stamp 
 			String str1 = client.getListRequestTime();
-			System.out.println("sent time: " + str1);
-			System.out.println("get time" + timestamp);
+//			System.out.println("sent time: " + str1);
+//			System.out.println("get time" + timestamp);
 			if(str1.equals(timestamp)){
-				
-			}
-			byte[] plaindata = CryptoUtils.decryptByAES(dataBytes, secretKeyKas);
-			Gson gson = new Gson();
-			Set<String> nameset = gson.fromJson(new String(plaindata), new TypeToken<Set<String>>(){}.getType());
-			System.out.println("online user list: ");
-			for (String str : nameset) {
-			      System.out.println(str);
+		
+				byte[] plaindata = CryptoUtils.decryptByAES(dataBytes, secretKeyKas);
+				Gson gson = new Gson();
+				nameset = gson.fromJson(new String(plaindata), new TypeToken<Set<String>>(){}.getType());
+				System.out.println("Online users: ");
+				for (String str : nameset) {
+					System.out.println(str);
+				}
 			}
 		}
 	}
@@ -267,6 +291,8 @@ public class ServerListener extends Thread{
 			messageToServer.setProtocolId(1);
 			messageToServer.setData(cipherdata);
 			String str = MessageReader.messageToJson(messageToServer);
+			System.out.println("*******Password correct!******");
+			System.out.println("list/logout/send");
 	        //send message;
 	        out.println(str);
 		}

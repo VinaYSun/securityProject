@@ -36,10 +36,18 @@ public class InputListener extends Thread{
 	private byte[] tempkab = null;
 	private byte[] ticket = null;
  	
+	
 	public InputListener(Client c, Socket socket){
 		this.client = c;
 		this.socketToServer = socket;
 		clientPortDict = new HashMap<String, String>();
+		in = new BufferedReader(new InputStreamReader(System.in));
+        try {
+			outServer = new PrintWriter(socketToServer.getOutputStream(), true);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+        
 	}
 	
 	@Override
@@ -52,29 +60,35 @@ public class InputListener extends Thread{
 	}
 
 	private void handleInput() throws IOException {
-		
-		 in = new BufferedReader(new InputStreamReader(System.in));
-         outServer = new PrintWriter(socketToServer.getOutputStream(), true);
-         while(true){
+//		 inputReminder();
+		 while(client.isConnected()){
         	//wait for user input
-        	 try {
-				sleep(100);
+        	try {
+				sleep(200);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
         	 if(client.getSecretKeyKas() == null){
 //        		 System.out.println("Get login first");
         	 }else{
-        		 String temp = in.readLine();
+        		 String temp = null;
+        		 if(client.isConnected()){
+            		 temp = in.readLine();
+        		 }
     	         if(temp==null) continue;
     	         String[] input = temp.split(" ");
-    	         System.out.println("temp" + temp);
+//    	         System.out.println(temp);
     	         int length = input.length;
     	         
-    	         if(length == 3 && input[0].equals("chat")){
+    	         if(length >= 3 && input[0].equals("send")){
     	        	 	
     	        	 	String peerName = input[1];
-    	        	 	String chatmessage = input[2];	
+    	        	 	
+    	        	 	StringBuilder sb = new StringBuilder();
+    	        	 	for(int i = 2; i < length; i++){
+    	        	 		sb.append(input[i]+" ");
+    	        	 	}
+    	        	 	String chatmessage = sb.toString();	
     	        	 	
     	        	 	peerSecretKeyDict = client.getPeerSecretKeyDict();
     	        	 	
@@ -82,7 +96,6 @@ public class InputListener extends Thread{
     	        	 		sendPeerMessage(peerName, chatmessage);
     	        	 	}else{
     	        	 		
-    	        	 		Key key = null;
     	        	 		//send message 31 to server  Kas{ua, ub, R4}
     	        	 		if(requestTicket(peerName)){
     	        	 			
@@ -92,7 +105,7 @@ public class InputListener extends Thread{
         	        	 		clearTempKab();
     	        	 		}else{
     	        	 			System.out.println("Connection failed");
-    	        	 			System.out.println("Please type <" + temp+ "> again!");
+    	        	 			System.out.println("Please type < " + temp+ " > again!");
     	        	 		}
     	        	 	}
     	        	 	
@@ -206,7 +219,7 @@ public class InputListener extends Thread{
 	private void sendPeerMessage(String peerName, String message) {
 //		System.out.println("==========send message any ===========");
 
-		System.out.println("Send message:" + peerName + ":"+ message);
+		System.out.println("Sending message to " + peerName);
 		Key key = client.getPeerSecretKeyDict().get(peerName); 
 		Socket socket = client.getClientSocketDict().get(peerName);
 		try {
@@ -247,10 +260,7 @@ public class InputListener extends Thread{
 			e.printStackTrace();
 		}
        
-	   HashMap<String, byte[]> mapin = new HashMap<String, byte[]>();
-	   
        if(client.getPeerTicketRequestDict().containsKey(peerName)){
-//   		   System.out.println("==========message 3 1===========");
 
     	   Map<String, byte[]> map = client.getPeerTicketRequestDict().get(peerName);
     	   
@@ -266,7 +276,7 @@ public class InputListener extends Thread{
     		   setTempkab(kabbyte);
     		   setTicket(ticket);
     		   savePort(peerName, new String(portbyte));
-               System.out.println("Send ticket request");
+               System.out.println("Sending connecting "+ peerName +" request");
     		   b = true;
     	   }
        }
@@ -308,9 +318,9 @@ public class InputListener extends Thread{
 		messageToServer.setData(data);
 		String str = MessageReader.messageToJson(messageToServer);
 		//save list request sent time
-		client.setListRequestTime(messageToServer.getTimestamp());
+		client.setLogoutRequestTime(messageToServer.getTimestamp());
         outServer.println(str);
-        System.out.println("Send logout request");
+        System.out.println("Sending logout request");
 		
 	}
 
@@ -330,9 +340,9 @@ public class InputListener extends Thread{
 	}
 
 	private void inputReminder() {
-		 System.out.println("Please user the following command");
+		 System.out.println("Please use the following command");
     	 System.out.println(" 1.'list': get a list of online users");
-    	 System.out.println(" 2.'chat <username> <message>': send 'username' a message");
+    	 System.out.println(" 2.'send <username> <message>': send 'username' a message");
     	 System.out.println(" 3.'logout': log out system.");		
 	}
 	

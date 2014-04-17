@@ -11,6 +11,8 @@ import java.security.Key;
 import java.util.HashMap;
 import java.util.Map;
 
+import utils.CryptoUtils;
+
 public class Server {
 	
 	private ServerSocket serverSocket = null;
@@ -19,7 +21,7 @@ public class Server {
 	private HashMap<String, Key> clientSecretKeyDict = null;
 	private Key SecretKey;
 	public Map<String, String> passwordBook = null;
-
+	private Key privateKey = null;
 
 	public Server() {
 		try{
@@ -27,15 +29,17 @@ public class Server {
 			clientSecretKeyDict = new HashMap<String, Key>();
 			passwordBook = new HashMap<String, String>();
 			loadPassword("password.txt");
+			privateKey = CryptoUtils.getPrivateKey("private.der");
 
+/*	
 			System.out.println("Please input the port # of server:");
 		    InputStreamReader is_reader = new InputStreamReader(System.in);
 	        
 		    String str = new BufferedReader(is_reader).readLine();
 	        int port = Integer.parseInt(str);
-			
-	        serverSocket = new ServerSocket(port);
-
+	*/		
+	        serverSocket = new ServerSocket(8989);
+	        System.out.println("server is running");
 	        acceptClient(serverSocket);
 			
 		}catch(IOException e){
@@ -65,9 +69,9 @@ public class Server {
 			    String name = section[0];
 			    String pwdsalt = section[1];
 			    String pwd = section[2];
-			    System.out.println(name);
-			    System.out.println(pwdsalt);
-			    System.out.println(pwd);
+//			    System.out.println(name);
+//			    System.out.println(pwdsalt);
+//			    System.out.println(pwd);
 			    passwordBook.put(name, pwdsalt+":"+pwd);
 			}
 			reader.close();
@@ -113,5 +117,13 @@ public class Server {
 
 	public void setPasswordBook(Map<String, String> passwordBook) {
 		this.passwordBook = passwordBook;
+	}
+	
+	public Key getPrivateKey() {
+		return privateKey;
+	}
+
+	public void setPrivateKey(Key privateKey) {
+		this.privateKey = privateKey;
 	}
 }

@@ -39,6 +39,8 @@ public class peerThread extends Thread{
 	private static final int CHAT_REQUEST = 3;
 	private static final int LOGOUT_REQUEST = 5;
 	private static final int MESSAGE = 4;
+	
+	private boolean stop = false;
 
 	
 	public peerThread(Client c, Socket s){
@@ -57,27 +59,50 @@ public class peerThread extends Thread{
 	@Override
 	public void run() {
 		try {
+			isOnline();
 			handleSocket();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
+	//check if the client socket is still open 
+	private void isOnline() {
+		try{
+            peerSocket.sendUrgentData(0xFF); 
+		}catch(Exception e){
+	        stop = true;
+		}
+		try {
+			if(stop){
+				peerSocket.close();
+			}
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+	}
+	
 	//get connection notice, update secret key dict, add new user
 	//get logout notice, update secret key dict, delete this user
 	
 	private void handleSocket() throws IOException {
-		
-		 in = new BufferedReader(new InputStreamReader(peerSocket.getInputStream()));
-         out = new PrintWriter(peerSocket.getOutputStream(), true);
          
-         while(true){
-	         String temp = in.readLine();
+         while(client.isConnected()){
+//        	 System.out.println("is connected" + client.isConnected());
+//        	 System.out.println("is stop" + stop);
+        	 try {
+ 				sleep(200);
+ 			 } catch (InterruptedException e) {
+ 				e.printStackTrace();
+ 			 }
+        	 
+        	 String temp = null;
+        	 if(client.isConnected()){
+        		 temp = in.readLine();
+        	 }
 	    
-	         if(temp==null) continue;
+	         if(temp!=null){
 	         
-//	         System.out.println(temp);
-
 	         messageFromPeer = MessageReader.messageFromJson(temp);
 	         messageToPeer = new Message(0,0);
 	         
@@ -90,15 +115,46 @@ public class peerThread extends Thread{
 	        		 chatRequest(messageFromPeer);
 	        		 break;
 	        	 case LOGOUT_REQUEST:
+	        		 logoutRequest(messageFromPeer);
 	        		 break;
 	        	 case MESSAGE:
 	        		 handleMessage(messageFromPeer);
 	        	 default:
 	        		 break;
 	         }
-	         
-         }
+	     }
+	 }
         
+	}
+
+	private void logoutRequest(Message message) {
+		int step = message.getStepId();
+		if(step == 1){
+			handleMessage53(message.getDataBytes());
+		}else{
+			System.out.println("Step doesn't exist");
+		}
+	}
+
+	private void handleMessage53(byte[] dataBytes) {
+		try{
+			HashMap<String, byte[]> map = new HashMap<String, byte[]>();
+			map = CryptoUtils.getDecryptedMap(dataBytes, getSecretKeyKab());
+			byte[] msg = map.get("logout");
+			byte[] sig = map.get("sig");
+//			System.out.println("==========receive any===========");
+
+			byte[] b = CryptoUtils.getMD5(msg);
+	    	if((new String(b)).equals(new String(sig))){
+	    		if((new String(msg)).equals("logout")){
+	    			stop = true;
+	    			peerSocket.close();
+		        	System.out.println(getPeerName() + " is offline.");
+	    		}
+	    	}
+		}catch(IOException e){
+			e.printStackTrace();
+		}
 	}
 
 	private void handleMessage(Message message) {
@@ -120,7 +176,7 @@ public class peerThread extends Thread{
 
 		byte[] b = CryptoUtils.getMD5(msg);
     	if((new String(b)).equals(new String(sig))){
-        	System.out.println(getPeerName() + ": " + new String(msg));
+        	System.out.println("From "+ getPeerName() + " : " + new String(msg));
     	}
 	}
 

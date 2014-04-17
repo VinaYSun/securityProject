@@ -46,6 +46,8 @@ public class Client {
 	private byte[] ticketToPeer;
 	private byte[] peerName;
 	
+	private boolean isConnected = false;
+	
 	public Client() {
 
 			initConnection();
@@ -77,9 +79,9 @@ public class Client {
 
 	private void getNameAndPwd(BufferedReader input) {
 		try {
-			System.out.println("Please input the username:");
+			System.out.println("Username:");
 			username = input.readLine();
-			System.out.println("Please input the password:");
+			System.out.println("Password:");
 			password = input.readLine();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -92,6 +94,7 @@ public class Client {
 			sktToServer = new Socket(hostAddress, 8989);
 			PrintWriter out = new PrintWriter(sktToServer.getOutputStream(), true);
 			Message msgInit = new Message(1,1,"login");
+			setConnected(true);
 			String str= MessageReader.messageToJson(msgInit);
 			out.println(str);
 		} catch (UnknownHostException e) {
@@ -111,6 +114,10 @@ public class Client {
 				Socket peer;
 				peer = getPeerListener().accept();
 				new peerThread(this, peer).start();
+				if(isConnected){
+					getPeerListener().close();
+					break;
+				}
 			}
 		}catch(IOException e){
 			e.printStackTrace();
@@ -259,5 +266,13 @@ public class Client {
 
 	public void setLogoutRequestTime(String logoutRequestTime) {
 		this.logoutRequestTime = logoutRequestTime;
+	}
+
+	public boolean isConnected() {
+		return isConnected;
+	}
+
+	public void setConnected(boolean isConnected) {
+		this.isConnected = isConnected;
 	}
 }
